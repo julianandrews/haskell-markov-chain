@@ -1,8 +1,16 @@
-module Markov (markovChain, generateTokens) where
+module Data.Markov (
+    MarkovNode(..),
+    MarkovChain,
+    markovChain,
+    generateTokens,
+    getRandomNode,
+    getToken,
+    getNext
+  ) where
 
 import qualified Data.Map as Map
 import Data.List (tails)
-import System.Random (RandomGen, randomR, getStdGen)
+import System.Random (RandomGen, randomR)
 
 type NGram a = [a]
 data MarkovNode a = MarkovNode (NGram a) [MarkovNode a]
@@ -41,24 +49,3 @@ generateTokens = go
     go n g = n' `seq` (getToken n : go n' g')
       where
         (n', g') = getNext n g
-
-tokenize :: String -> [String]
-tokenize = words
-
-detokenize :: [String] -> String
-detokenize = unwords
-
-getSentenceStart :: RandomGen g => MarkovNode String -> g -> (MarkovNode String, g)
-getSentenceStart node
-  | last (getToken node) `elem` ".!?" = getNext node
-  | otherwise = uncurry getSentenceStart . getNext node
-
-generateSentence :: RandomGen g => MarkovChain String -> g -> String
-generateSentence chain = detokenize . take 100 . uncurry generateTokens . getStartingNode chain
-  where
-    getStartingNode chain = uncurry getSentenceStart . getRandomNode chain
-
-main = do
-  s <- readFile "corpus/lovecraft/dunwich.txt"
-  g <- getStdGen
-  print $ generateSentence (markovChain 2 $ tokenize s) g
