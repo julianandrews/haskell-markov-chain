@@ -10,12 +10,20 @@ tokenize = words
 detokenize :: [String] -> String
 detokenize = unwords
 
-getSentenceStart :: RandomGen g => MarkovNode String -> g -> (MarkovNode String, g)
-getSentenceStart node
-  | last (getToken node) `elem` ".!?" = getNext node
-  | otherwise = uncurry getSentenceStart . getNext node
+endsSentence word = last word `elem` ".!?"
+
+dropSentence :: [String] -> [String]
+dropSentence (word:words)
+  | endsSentence word = words
+  | otherwise = dropSentence words
+
+takeSentence :: [String] -> [String]
+takeSentence (word:words)
+  | endsSentence word = [word]
+  | otherwise = word : takeSentence words
 
 generateSentence :: RandomGen g => MarkovChain String -> g -> String
-generateSentence chain = detokenize . take 100 . uncurry generateTokens . getStartingNode chain
+generateSentence chain = getFirstFullSentence . getWords chain
   where
-    getStartingNode chain = uncurry getSentenceStart . getRandomNode chain
+    getWords chain = uncurry generateTokens . getRandomNode chain
+    getFirstFullSentence = detokenize . takeSentence . dropSentence
