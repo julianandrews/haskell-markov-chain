@@ -1,7 +1,6 @@
 module Markov (markovChain, generateTokens) where
 
 import qualified Data.Map as Map
-import Data.Random.Extras (choice)
 import System.Random (RandomGen, randomR)
 
 -- Example: 
