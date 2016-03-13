@@ -1,5 +1,6 @@
-module Data.Markov.String (generateSentence, tokenize) where
+module Data.Markov.String (genSentence, fromString, fromFile, fromFiles) where
 
+import Control.Monad (liftM)
 import System.Random (RandomGen)
 
 import Data.Markov
@@ -22,8 +23,21 @@ takeSentence (word:words)
   | endsSentence word = [word]
   | otherwise = word : takeSentence words
 
-generateSentence :: RandomGen g => MarkovChain String -> g -> String
-generateSentence chain = getFirstFullSentence . getWords chain
+genSentence :: RandomGen g => MarkovChain String -> g -> String
+genSentence chain = getFirstFullSentence . getWords chain
   where
     getWords chain = uncurry generateTokens . getRandomNode chain
     getFirstFullSentence = detokenize . takeSentence . dropSentence
+
+fromString :: Int -> String -> MarkovChain String
+fromString n = markovChain n . tokenize
+
+fromFile :: Int -> FilePath -> IO (MarkovChain String)
+fromFile n filename = do
+  s <- readFile filename
+  return $ fromString n s
+
+fromFiles :: Int -> [FilePath] -> IO (MarkovChain String)
+fromFiles n filenames = do
+  s <- liftM concat . mapM readFile $ filenames
+  return $ fromString n s

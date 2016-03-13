@@ -1,9 +1,11 @@
 import System.Random (getStdGen)
 
-import Data.Markov (markovChain)
-import Data.Markov.String (generateSentence, tokenize)
+import Data.Markov.String (genSentence, fromFiles)
 
 main = do
-  s <- readFile "corpus/lovecraft/dunwich.txt"
+  chain <- fromFiles 2 [
+      "corpus/lovecraft/dunwich.txt",
+      "corpus/lovecraft/mountains_of_madness.txt"
+    ]
   g <- getStdGen
-  print $ generateSentence (markovChain 2 $ tokenize s) g
+  print $ genSentence chain g
