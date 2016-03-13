@@ -2,12 +2,12 @@ module Markov (markovChain, generateTokens) where
 
 import qualified Data.Map as Map
 import Data.Random.Extras (choice)
-import Data.RVar (RVar)
+import System.Random (RandomGen, randomR)
 
 -- Example: 
--- :m + Data.Random.Source.DevRandom Data.RVar
--- let n = markovChain ["Tic", "Toc", "Tic", "Toc", "Tic", "Tac"] Map.! ("Tic", "Toc")
--- runRVar (generateTokens 10 n) DevRandom
+-- :m + System.Random
+-- let n = markovChain ["Tic", "Toc", "Tic", "Toc", "Tac"] Map.! ("Tic", "Toc")
+-- take 20 $ generateTokens n (mkStdGen 42)
 
 type NGram a = (a, a)
 data MarkovNode a = MarkovNode (NGram a) [MarkovNode a]
@@ -29,12 +29,14 @@ markovChain tokens = chain
 getToken :: MarkovNode a -> a 
 getToken (MarkovNode ngram nodes) = fst ngram
 
-getNext :: MarkovNode a -> RVar (MarkovNode a)
-getNext (MarkovNode ngram nodes) = choice nodes
+getNext :: RandomGen g => MarkovNode a -> g -> (MarkovNode a, g)
+getNext (MarkovNode ngram nodes) g = (nodes !! i, g')
+  where
+    (i, g') = randomR (0, length nodes - 1) g
 
-generateTokens :: Int -> MarkovNode a -> RVar [a]
-generateTokens 0 _ = return []
-generateTokens n node = do
-  next <- getNext node
-  tail <- generateTokens (n - 1) next
-  return $ getToken node : tail
+generateTokens :: RandomGen g => MarkovNode a -> g -> [a]
+generateTokens = go
+  where
+    go n g = n' `seq` (getToken n : go n' g')
+      where
+        (n', g') = getNext n g
