@@ -1,9 +1,13 @@
-module Markov (markovChain, generateTokens, tokenize) where
+module Markov (markovChain, generateTokens) where
 
 import qualified Data.Map as Map
-import Data.Random.Source.DevRandom (DevRandom(..))
 import Data.Random.Extras (choice)
-import Data.RVar (RVar, runRVar)
+import Data.RVar (RVar)
+
+-- Example: 
+-- :m + Data.Random.Source.DevRandom Data.RVar
+-- let n = markovChain ["Tic", "Toc", "Tic", "Toc", "Tic", "Tac"] Map.! ("Tic", "Toc")
+-- runRVar (generateTokens 10 n) DevRandom
 
 type NGram a = (a, a)
 data MarkovNode a = MarkovNode (NGram a) [MarkovNode a]
@@ -34,6 +38,3 @@ generateTokens n node = do
   next <- getNext node
   tail <- generateTokens (n - 1) next
   return $ getToken node : tail
-
-tokenize :: String -> [String]
-tokenize = words
