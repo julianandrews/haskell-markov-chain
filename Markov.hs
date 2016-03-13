@@ -21,6 +21,12 @@ markovChain n tokens = chain
     chain = Map.mapWithKey toMarkovNode . nGramMap n $ tokens
     toMarkovNode ngram = MarkovNode ngram . map (chain Map.!)
 
+getRandomNode :: RandomGen g => MarkovChain a -> g -> (MarkovNode a, g)
+getRandomNode chain g = (nodes !! i, g')
+  where
+    (i, g') = randomR (0, length nodes - 1) g
+    nodes = Map.elems chain
+
 getToken :: MarkovNode a -> a 
 getToken (MarkovNode ngram nodes) = head ngram
 
@@ -36,10 +42,23 @@ generateTokens = go
       where
         (n', g') = getNext n g
 
+tokenize :: String -> [String]
+tokenize = words
+
+detokenize :: [String] -> String
+detokenize = unwords
+
+getSentenceStart :: RandomGen g => MarkovNode String -> g -> (MarkovNode String, g)
+getSentenceStart node
+  | last (getToken node) `elem` ".!?" = getNext node
+  | otherwise = uncurry getSentenceStart . getNext node
+
 generateSentence :: RandomGen g => MarkovChain String -> g -> String
-generateSentence c = unwords . dropWhile (('.' ==) . last) . take 20 . generateTokens (head $ Map.elems c)
+generateSentence chain = detokenize . take 100 . uncurry generateTokens . getStartingNode chain
+  where
+    getStartingNode chain = uncurry getSentenceStart . getRandomNode chain
 
 main = do
-  s <- readFile "data/poe.txt"
+  s <- readFile "corpus/lovecraft/dunwich.txt"
   g <- getStdGen
-  print $ generateSentence (markovChain 2 $ words s) g
+  print $ generateSentence (markovChain 2 $ tokenize s) g
