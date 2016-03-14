@@ -44,9 +44,10 @@ getNext (MarkovNode ngram nodes) g = (nodes !! i, g')
   where
     (i, g') = randomR (0, length nodes - 1) g
 
-generateTokens :: RandomGen g => MarkovNode a -> g -> [a]
+generateTokens :: RandomGen g => MarkovNode a -> g -> ([a], g)
 generateTokens = go
   where
-    go n g = n' `seq` (getToken n : go n' g')
+    go n g = n' `seq` (getToken n : rest, g'')
       where
         (n', g') = getNext n g
+        (rest, g'') = go n' g'

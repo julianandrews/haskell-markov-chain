@@ -8,4 +8,4 @@ main = do
       "corpus/lovecraft/mountains_of_madness.txt"
     ]
   g <- getStdGen
-  print $ genSentence chain g
+  print . fst . genSentence chain $ g

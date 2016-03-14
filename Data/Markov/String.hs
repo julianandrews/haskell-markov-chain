@@ -1,5 +1,6 @@
 module Data.Markov.String (genSentence, fromString, fromFile, fromFiles) where
 
+import Control.Arrow (first)
 import Control.Monad (liftM)
 import System.Random (RandomGen)
 
@@ -11,6 +12,7 @@ tokenize = words
 detokenize :: [String] -> String
 detokenize = unwords
 
+endsSentence :: String -> Bool
 endsSentence word = last word `elem` ".!?"
 
 dropSentence :: [String] -> [String]
@@ -23,8 +25,8 @@ takeSentence (word:words)
   | endsSentence word = [word]
   | otherwise = word : takeSentence words
 
-genSentence :: RandomGen g => MarkovChain String -> g -> String
-genSentence chain = getFirstFullSentence . getWords chain
+genSentence :: RandomGen g => MarkovChain String -> g -> (String, g)
+genSentence chain = first getFirstFullSentence . getWords chain
   where
     getWords chain = uncurry generateTokens . getRandomNode chain
     getFirstFullSentence = detokenize . takeSentence . dropSentence
