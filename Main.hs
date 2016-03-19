@@ -1,6 +1,12 @@
+import Control.Monad (liftM)
+import Data.Markov (MarkovChain)
+import Data.Markov.String (genSentence, fromString)
 import System.Random (getStdGen)
 
-import Data.Markov.String (genSentence, fromFiles)
+fromFiles :: Int -> [FilePath] -> IO (MarkovChain String)
+fromFiles n filenames = do
+  s <- liftM concat . mapM readFile $ filenames
+  return $ fromString n s
 
 main = do
   chain <- fromFiles 2 [
