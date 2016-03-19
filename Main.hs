@@ -1,17 +1,16 @@
-import Control.Monad (liftM)
+import Control.Monad.Random (evalRandIO)
 import Data.Markov (MarkovChain)
 import Data.Markov.String (genSentence, fromString)
-import System.Random (getStdGen)
 
-fromFiles :: Int -> [FilePath] -> IO (MarkovChain String)
-fromFiles n filenames = do
-  s <- liftM concat . mapM readFile $ filenames
-  return $ fromString n s
+fromFiles :: [FilePath] -> IO (MarkovChain String)
+fromFiles filenames = do
+  s <- concat <$> (mapM readFile $ filenames)
+  return $ fromString 2 s
 
 main = do
-  chain <- fromFiles 2 [
+  chain <- fromFiles [
+      "corpus/lovecraft/mountains_of_madness.txt",
       "corpus/lovecraft/dunwich.txt"
-      -- "corpus/lovecraft/mountains_of_madness.txt"
     ]
-  g <- getStdGen
-  print . genSentence chain $ g
+  sentence <- evalRandIO $ genSentence chain
+  print sentence

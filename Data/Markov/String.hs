@@ -1,7 +1,7 @@
 module Data.Markov.String (genSentence, fromString) where
 
+import Control.Monad.Random (Rand, RandomGen)
 import Data.Markov
-import System.Random (RandomGen)
 
 endsSentence :: String -> Bool
 endsSentence word = last word `elem` ".!?"
@@ -19,8 +19,8 @@ takeSentence (word:words)
 firstFullSentence :: [String] -> String
 firstFullSentence = unwords . takeSentence . dropSentence
 
-genSentence :: RandomGen g => MarkovChain String -> g -> String
-genSentence = (firstFullSentence .) . generateTokens
-
 fromString :: Int -> String -> MarkovChain String
 fromString n = markovChain n . words
+
+genSentence :: RandomGen g => MarkovChain String -> Rand g String
+genSentence = (firstFullSentence <$>) . generateTokens

@@ -1,13 +1,9 @@
-module Data.Markov (
-    MarkovChain,
-    markovChain,
-    generateTokens
-  ) where
+module Data.Markov (MarkovChain, markovChain, generateTokens) where
 
-import Control.Monad.Random (Rand)
-import qualified Data.Map as Map
+import Control.Monad (liftM)
+import Control.Monad.Random (Rand, getRandomR, RandomGen)
 import Data.List (tails)
-import System.Random (RandomGen, randomR)
+import qualified Data.Map as Map
 
 type NGram a = [a]
 data MarkovNode a = MarkovNode (NGram a) [MarkovNode a]
@@ -17,7 +13,7 @@ nGramMap :: Ord a => Int -> [a] -> Map.Map (NGram a) [NGram a]
 nGramMap n = foldl addTransition Map.empty . toPairs . toNGrams n
   where
     addTransition m (from, to) = Map.insertWith (++) from [to] m
-    toNGrams n = map (take n) . takeWhile ((>=n) . length) . tails
+    toNGrams n xs = take (length xs - n + 1) . map (take n) . tails $ xs
     -- cycle guarantees that every node has at least one transition.
     toPairs l = zip l . tail . cycle $ l
 
@@ -27,23 +23,20 @@ markovChain n tokens = chain
     chain = Map.mapWithKey toMarkovNode . nGramMap n $ tokens
     toMarkovNode ngram = MarkovNode ngram . map (chain Map.!)
 
-getToken :: MarkovNode a -> a
-getToken (MarkovNode ngram nodes) = head ngram
+token :: MarkovNode a -> a
+token (MarkovNode ngram nodes) = head ngram
 
-getNext :: RandomGen g => MarkovNode a -> g -> (MarkovNode a, g)
-getNext (MarkovNode ngram nodes) g = (nodes !! i, g')
-  where
-    (i, g') = randomR (0, length nodes - 1) g
+choice :: RandomGen g => [a] -> Rand g a
+choice elements = (elements !!) <$> getRandomR (0, length elements - 1)
 
-getRandomNode :: RandomGen g => MarkovChain a -> g -> (MarkovNode a, g)
-getRandomNode chain g = (nodes !! i, g')
-  where
-    (i, g') = randomR (0, length nodes - 1) g
-    nodes = Map.elems chain
+nextNode :: RandomGen g => MarkovNode a -> Rand g (MarkovNode a)
+nextNode (MarkovNode ngram nodes) = choice nodes
 
-generateTokens :: RandomGen g => MarkovChain a -> g -> [a]
-generateTokens c = uncurry go . getRandomNode c
-  where
-    go n g = n' `seq` getToken n : go n' g'
-      where
-        (n', g') = getNext n g
+iterateM :: Monad m => (a -> m a) -> m a -> m [a]
+iterateM step start = do
+    first <- start
+    rest <- iterateM step (step first)
+    return (first:rest)
+
+generateTokens :: RandomGen g => MarkovChain a -> Rand g [a]
+generateTokens = liftM (map token) . iterateM nextNode . choice . Map.elems
