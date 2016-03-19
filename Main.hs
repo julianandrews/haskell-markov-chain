@@ -10,8 +10,8 @@ fromFiles n filenames = do
 
 main = do
   chain <- fromFiles 2 [
-      "corpus/lovecraft/dunwich.txt",
-      "corpus/lovecraft/mountains_of_madness.txt"
+      "corpus/lovecraft/dunwich.txt"
+      -- "corpus/lovecraft/mountains_of_madness.txt"
     ]
   g <- getStdGen
-  print . fst . genSentence chain $ g
+  print . genSentence chain $ g

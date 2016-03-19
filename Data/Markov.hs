@@ -1,13 +1,10 @@
 module Data.Markov (
-    MarkovNode(..),
     MarkovChain,
     markovChain,
-    generateTokens,
-    getRandomNode,
-    getToken,
-    getNext
+    generateTokens
   ) where
 
+import Control.Monad.Random (Rand)
 import qualified Data.Map as Map
 import Data.List (tails)
 import System.Random (RandomGen, randomR)
@@ -30,13 +27,7 @@ markovChain n tokens = chain
     chain = Map.mapWithKey toMarkovNode . nGramMap n $ tokens
     toMarkovNode ngram = MarkovNode ngram . map (chain Map.!)
 
-getRandomNode :: RandomGen g => MarkovChain a -> g -> (MarkovNode a, g)
-getRandomNode chain g = (nodes !! i, g')
-  where
-    (i, g') = randomR (0, length nodes - 1) g
-    nodes = Map.elems chain
-
-getToken :: MarkovNode a -> a 
+getToken :: MarkovNode a -> a
 getToken (MarkovNode ngram nodes) = head ngram
 
 getNext :: RandomGen g => MarkovNode a -> g -> (MarkovNode a, g)
@@ -44,10 +35,15 @@ getNext (MarkovNode ngram nodes) g = (nodes !! i, g')
   where
     (i, g') = randomR (0, length nodes - 1) g
 
-generateTokens :: RandomGen g => MarkovNode a -> g -> ([a], g)
-generateTokens = go
+getRandomNode :: RandomGen g => MarkovChain a -> g -> (MarkovNode a, g)
+getRandomNode chain g = (nodes !! i, g')
   where
-    go n g = n' `seq` (getToken n : rest, g'')
+    (i, g') = randomR (0, length nodes - 1) g
+    nodes = Map.elems chain
+
+generateTokens :: RandomGen g => MarkovChain a -> g -> [a]
+generateTokens c = uncurry go . getRandomNode c
+  where
+    go n g = n' `seq` getToken n : go n' g'
       where
         (n', g') = getNext n g
-        (rest, g'') = go n' g'
