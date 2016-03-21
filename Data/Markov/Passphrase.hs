@@ -18,7 +18,7 @@ nodeEntropy (MarkovNode _ nodes) = entropy $ map (/ total) counts
     total = sum counts
 
 wordsWithEntropy :: [MarkovNode Char] -> [(String, Double)]
-wordsWithEntropy = map mergeTuples . splitWords . map (token &&& nodeEntropy)
+wordsWithEntropy = map mergeTuples . splitWords . map (last . ngram &&& nodeEntropy)
   where
     mergeTuples = first (drop 1) . second sum . unzip
     splitWords = split . keepDelimsL . whenElt $ (== ' ') . fst
@@ -37,10 +37,12 @@ cleanForPassphrase = unwords . filter isGood . map clean . words
 
 passphrase :: RandomGen g =>
   Double -> MarkovChain Char -> Rand g (String, Double)
-passphrase eMin chain = mergeTuples . takeEnough <$> iterateNodes (choice ns)
+passphrase eMin chain = mergeTuples . takeEnough <$> iterateNodes n0
   where
     ns = filter ((==) ' ' . token) (Map.elems chain)
+    n0 = choice ns
+    s0 = tail . drop 1 . ngram <$> n0
     e0 = entropy $ replicate l (1 / fromIntegral l)
       where l = length ns
-    mergeTuples = first (drop 1 . unwords) . second ((e0 +) . sum) . unzip
+    mergeTuples = first unwords . second ((e0 +) . sum) . unzip
     takeEnough = takeUntilAtLeast (eMin - e0) . wordsWithEntropy
