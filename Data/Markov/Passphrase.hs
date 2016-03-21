@@ -12,34 +12,35 @@ entropy :: [Double] -> Double
 entropy = negate . sum . map (\p -> p * logBase 2 p)
 
 nodeEntropy :: (Eq a, Ord a) => MarkovNode a -> Double
-nodeEntropy (MarkovNode _ nodes) = entropy $ map probability counts
+nodeEntropy (MarkovNode _ nodes) = entropy $ map (/ total) counts
   where
-    counts = map length . group . sort . map ngram $ nodes
+    counts = map (fromIntegral . length) . group . sort . map ngram $ nodes
     total = sum counts
-    probability count = fromIntegral count / fromIntegral total
 
 wordsWithEntropy :: [MarkovNode Char] -> [(String, Double)]
-wordsWithEntropy = map summarizeWord . splitWords . map (token &&& nodeEntropy)
+wordsWithEntropy = map mergeTuples . splitWords . map (token &&& nodeEntropy)
   where
-    summarizeWord = first (drop 1) . second sum . unzip
+    mergeTuples = first (drop 1) . second sum . unzip
     splitWords = split . keepDelimsL . whenElt $ (== ' ') . fst
 
-takeUntilTotal :: Double -> [(a, Double)] -> [(a, Double)]
-takeUntilTotal n (x:xs)
+takeUntilAtLeast :: Double -> [(a, Double)] -> [(a, Double)]
+takeUntilAtLeast n (x:xs)
   | n <= 0 = []
-  | otherwise = x : takeUntilTotal (n - snd x) xs
+  | otherwise = x : takeUntilAtLeast (n - snd x) xs
 
 cleanForPassphrase :: String -> String
-cleanForPassphrase = unwords . filter ((>5) . length) . map cleanWord . words
+cleanForPassphrase = unwords . filter isGood . map clean . words
   where
-    cleanWord = map toLower . takeWhile isAlpha . dropWhile (not . isAlpha)
+    isGood word = length word > 4 && all isAlpha word
+    clean = map toLower . reverse . lstrip . reverse . lstrip
+    lstrip = takeWhile isAlpha
 
 passphrase :: RandomGen g =>
   Double -> MarkovChain Char -> Rand g (String, Double)
-passphrase minEntropy chain = combine . takeNeededWords <$> iterateNodes (choice startingNodes)
+passphrase eMin chain = mergeTuples . takeEnough <$> iterateNodes (choice ns)
   where
-    startingNodes = filter ((==) ' ' . token) (Map.elems chain)
-    startingNodeCount = length startingNodes
-    startingEntropy = entropy $ replicate startingNodeCount (1 / fromIntegral startingNodeCount)
-    combine = first (unwords . drop 1) . second ((+ startingEntropy) . sum) . unzip
-    takeNeededWords = takeUntilTotal (minEntropy - startingEntropy) . wordsWithEntropy
+    ns = filter ((==) ' ' . token) (Map.elems chain)
+    e0 = entropy $ replicate l (1 / fromIntegral l)
+      where l = length ns
+    mergeTuples = first (drop 1 . unwords) . second ((e0 +) . sum) . unzip
+    takeEnough = takeUntilAtLeast (eMin - e0) . wordsWithEntropy
