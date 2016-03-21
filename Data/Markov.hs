@@ -4,8 +4,10 @@ module Data.Markov (
   markovChain,
   ngram,
   token,
+  randomNode,
   iterateNodes,
-  iterateTokens
+  iterateTokens,
+  choice
 ) where
 
 import Control.Monad.Random (Rand, getRandomR, RandomGen)
@@ -48,8 +50,11 @@ iterateM step start = do
     rest <- iterateM step (step first)
     return (first:rest)
 
-iterateNodes :: RandomGen g => MarkovChain a -> Rand g [MarkovNode a]
-iterateNodes = iterateM next . choice . Map.elems
+randomNode :: RandomGen g => MarkovChain a -> Rand g (MarkovNode a)
+randomNode = choice . Map.elems
 
-iterateTokens :: RandomGen g => MarkovChain a -> Rand g [a]
+iterateNodes :: RandomGen g => Rand g (MarkovNode a) -> Rand g [MarkovNode a]
+iterateNodes = iterateM next
+
+iterateTokens :: RandomGen g => Rand g (MarkovNode a) -> Rand g [a]
 iterateTokens = (map token <$>) . iterateNodes
