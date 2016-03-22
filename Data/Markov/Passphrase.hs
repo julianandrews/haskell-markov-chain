@@ -1,6 +1,6 @@
-module Data.Markov.Passphrase (cleanForPassphrase, passphrase) where
+module Data.Markov.Passphrase (passphrase, cleanForPassphrase) where
 
-import Control.Arrow (first, second, (&&&))
+import Control.Arrow (first, (&&&), (***))
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Char (toLower, isAlpha)
 import Data.List (group, sort)
@@ -11,16 +11,19 @@ import Data.Markov
 entropy :: [Double] -> Double
 entropy = negate . sum . map (\p -> p * logBase 2 p)
 
-nodeEntropy :: (Eq a, Ord a) => MarkovNode a -> Double
-nodeEntropy (MarkovNode _ nodes) = entropy $ map (/ total) counts
+ngramDist :: (Eq a, Ord a) => [MarkovNode a] -> [Double]
+ngramDist ns = map (/ sum counts) counts
   where
-    counts = map (fromIntegral . length) . group . sort . map ngram $ nodes
-    total = sum counts
+    counts = map (fromIntegral . length) . group . sort . map ngram $ ns
+
+nodeEntropy :: (Eq a, Ord a) => MarkovNode a -> Double
+nodeEntropy = entropy . ngramDist . nodes
 
 wordsWithEntropy :: [MarkovNode Char] -> [(String, Double)]
-wordsWithEntropy = map mergeTuples . splitWords . map (last . ngram &&& nodeEntropy)
+wordsWithEntropy = getWords . map (token &&& nodeEntropy)
   where
-    mergeTuples = first (drop 1) . second sum . unzip
+    token = last . ngram
+    getWords = map ((tail *** sum) . unzip) . splitWords
     splitWords = split . keepDelimsL . whenElt $ (== ' ') . fst
 
 takeUntilAtLeast :: Double -> [(a, Double)] -> [(a, Double)]
@@ -28,21 +31,25 @@ takeUntilAtLeast n (x:xs)
   | n <= 0 = []
   | otherwise = x : takeUntilAtLeast (n - snd x) xs
 
+firstNodeWithEntropy :: RandomGen g =>
+  MarkovChain Char -> (Rand g (MarkovNode Char), Double)
+firstNodeWithEntropy = (choice &&& entropy . ngramDist) . collectNodes
+  where
+    collectNodes = filter isWordStart . concatMap nodes . Map.elems
+    isWordStart = (== ' ') . head . ngram
+
+passphrase :: RandomGen g =>
+  Double -> MarkovChain Char -> Rand g (String, Double)
+passphrase eMin c = (first . (++) <$> s0) <*> (takeWords <$> iterateNodes n0)
+  where
+    (n0, e0) = firstNodeWithEntropy c
+    s0 = tail . ngram <$> n0
+    takeWords = mergeTuples . takeUntilAtLeast (eMin - e0) . wordsWithEntropy
+    mergeTuples = (unwords *** (e0 +) . sum) . unzip
+
 cleanForPassphrase :: String -> String
 cleanForPassphrase = unwords . filter isGood . map clean . words
   where
     isGood word = length word > 4 && all isAlpha word
     clean = map toLower . reverse . lstrip . reverse . lstrip
     lstrip = takeWhile isAlpha
-
-passphrase :: RandomGen g =>
-  Double -> MarkovChain Char -> Rand g (String, Double)
-passphrase eMin chain = mergeTuples . takeEnough <$> iterateNodes n0
-  where
-    ns = filter ((==) ' ' . token) (Map.elems chain)
-    n0 = choice ns
-    s0 = tail . drop 1 . ngram <$> n0
-    e0 = entropy $ replicate l (1 / fromIntegral l)
-      where l = length ns
-    mergeTuples = first unwords . second ((e0 +) . sum) . unzip
-    takeEnough = takeUntilAtLeast (eMin - e0) . wordsWithEntropy

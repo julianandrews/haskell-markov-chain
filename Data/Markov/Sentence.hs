@@ -2,6 +2,7 @@ module Data.Markov.Sentence (sentence) where
 
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Markov
+import qualified Data.Map as Map
 
 endsSentence :: String -> Bool
 endsSentence word = last word `elem` ".!?"
@@ -20,4 +21,4 @@ firstFullSentence :: [String] -> String
 firstFullSentence = unwords . takeSentence . dropSentence
 
 sentence :: RandomGen g => MarkovChain String -> Rand g String
-sentence = (firstFullSentence <$>) . iterateTokens . randomNode
+sentence = (firstFullSentence <$>) . iterateTokens . choice . Map.elems

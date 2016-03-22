@@ -2,9 +2,6 @@ module Data.Markov (
   MarkovChain,
   MarkovNode(..),
   markovChain,
-  ngram,
-  token,
-  randomNode,
   iterateNodes,
   iterateTokens,
   choice
@@ -15,11 +12,11 @@ import Data.List (tails)
 import qualified Data.Map as Map
 
 type NGram a = [a]
-data MarkovNode a = MarkovNode (NGram a) [MarkovNode a] deriving (Eq)
+data MarkovNode a = MarkovNode {ngram :: NGram a, nodes :: [MarkovNode a]}
 type MarkovChain a = Map.Map (NGram a) (MarkovNode a)
 
-nGramMap :: Ord a => Int -> [a] -> Map.Map (NGram a) [NGram a]
-nGramMap n = foldl addTransition Map.empty . toPairs . toNGrams n
+ngramMap :: Ord a => Int -> [a] -> Map.Map (NGram a) [NGram a]
+ngramMap n = foldl addTransition Map.empty . toPairs . toNGrams n
   where
     addTransition m (from, to) = Map.insertWith (++) from [to] m
     toNGrams n xs = take (length xs - n + 1) . map (take n) . tails $ xs
@@ -29,20 +26,11 @@ nGramMap n = foldl addTransition Map.empty . toPairs . toNGrams n
 markovChain :: (Eq a, Ord a) => Int -> [a] -> MarkovChain a
 markovChain n tokens = chain
   where
-    chain = Map.mapWithKey toMarkovNode . nGramMap n $ tokens
+    chain = Map.mapWithKey toMarkovNode . ngramMap n $ tokens
     toMarkovNode n = MarkovNode n . map (chain Map.!)
-
-ngram :: MarkovNode a -> NGram a
-ngram (MarkovNode n _) = n
-
-token :: MarkovNode a -> a
-token = head . ngram
 
 choice :: RandomGen g => [a] -> Rand g a
 choice elements = (elements !!) <$> getRandomR (0, length elements - 1)
-
-next :: RandomGen g => MarkovNode a -> Rand g (MarkovNode a)
-next (MarkovNode _ nodes) = choice nodes
 
 iterateM :: Monad m => (a -> m a) -> m a -> m [a]
 iterateM step start = do
@@ -50,11 +38,8 @@ iterateM step start = do
     rest <- iterateM step (step first)
     return (first:rest)
 
-randomNode :: RandomGen g => MarkovChain a -> Rand g (MarkovNode a)
-randomNode = choice . Map.elems
-
 iterateNodes :: RandomGen g => Rand g (MarkovNode a) -> Rand g [MarkovNode a]
-iterateNodes = iterateM next
+iterateNodes = iterateM $ choice . nodes
 
 iterateTokens :: RandomGen g => Rand g (MarkovNode a) -> Rand g [a]
-iterateTokens = (map token <$>) . iterateNodes
+iterateTokens = (map (head . ngram) <$>) . iterateNodes
