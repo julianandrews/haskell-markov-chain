@@ -6,7 +6,9 @@ import Data.Char (toLower, isAlpha)
 import Data.List (group, sort)
 import Data.List.Split (split, whenElt, keepDelimsL)
 import qualified Data.Map as Map
+
 import Data.Markov
+import Utils
 
 entropy :: [Double] -> Double
 entropy = negate . sum . map (\p -> p * logBase 2 p)

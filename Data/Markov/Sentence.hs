@@ -1,8 +1,10 @@
 module Data.Markov.Sentence (sentence) where
 
 import Control.Monad.Random (Rand, RandomGen)
-import Data.Markov
 import qualified Data.Map as Map
+
+import Data.Markov
+import Utils
 
 endsSentence :: String -> Bool
 endsSentence word = last word `elem` ".!?"

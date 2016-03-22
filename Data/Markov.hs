@@ -1,15 +1,12 @@
 module Data.Markov (
-  MarkovChain,
-  MarkovNode(..),
-  markovChain,
-  iterateNodes,
-  iterateTokens,
-  choice
+  MarkovChain, MarkovNode(..), markovChain, iterateNodes, iterateTokens
 ) where
 
-import Control.Monad.Random (Rand, getRandomR, RandomGen)
+import Control.Monad.Random (Rand, RandomGen)
 import Data.List (tails)
 import qualified Data.Map as Map
+
+import Utils (choice)
 
 type NGram a = [a]
 data MarkovNode a = MarkovNode {ngram :: NGram a, nodes :: [MarkovNode a]}
@@ -28,9 +25,6 @@ markovChain n tokens = chain
   where
     chain = Map.mapWithKey toMarkovNode . ngramMap n $ tokens
     toMarkovNode n = MarkovNode n . map (chain Map.!)
-
-choice :: RandomGen g => [a] -> Rand g a
-choice elements = (elements !!) <$> getRandomR (0, length elements - 1)
 
 iterateM :: Monad m => (a -> m a) -> m a -> m [a]
 iterateM step start = do
