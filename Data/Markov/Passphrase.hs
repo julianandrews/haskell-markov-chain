@@ -3,26 +3,29 @@ module Data.Markov.Passphrase (passphrase, cleanForPassphrase) where
 import Control.Arrow (first, (&&&), (***))
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Char (toLower, isAlpha)
-import Data.List (group, sort)
+import Data.List (group, sort, sortBy)
 import Data.List.Split (split, whenElt, keepDelimsL)
 import qualified Data.Map as Map
 
 import Data.Markov
 import Utils
 
-entropy :: [Double] -> Double
-entropy = negate . sum . map (\p -> p * logBase 2 p)
+work :: [Double] -> Double
+-- work = negate . sum . map (\p -> p * logBase 2 p)
+work = (/ logBase 2 1.5) . logBase 2 . averageGuesses
+  where
+    averageGuesses = sum . zipWith (*) [1..] . sortBy (flip compare)
 
 ngramDist :: (Eq a, Ord a) => [MarkovNode a] -> [Double]
 ngramDist ns = map (/ sum counts) counts
   where
     counts = map (fromIntegral . length) . group . sort . map ngram $ ns
 
-nodeEntropy :: (Eq a, Ord a) => MarkovNode a -> Double
-nodeEntropy = entropy . ngramDist . nodes
+nodeWork :: (Eq a, Ord a) => MarkovNode a -> Double
+nodeWork = work . ngramDist . nodes
 
-wordsWithEntropy :: [MarkovNode Char] -> [(String, Double)]
-wordsWithEntropy = getWords . map (token &&& nodeEntropy)
+wordsWithWork :: [MarkovNode Char] -> [(String, Double)]
+wordsWithWork = getWords . map (token &&& nodeWork)
   where
     token = last . ngram
     getWords = map ((tail *** sum) . unzip) . splitWords
@@ -33,9 +36,9 @@ takeUntilAtLeast n (x:xs)
   | n <= 0 = []
   | otherwise = x : takeUntilAtLeast (n - snd x) xs
 
-firstNodeWithEntropy :: RandomGen g =>
+firstNodeWithWork :: RandomGen g =>
   MarkovChain Char -> (Rand g (MarkovNode Char), Double)
-firstNodeWithEntropy = (choice &&& entropy . ngramDist) . collectNodes
+firstNodeWithWork = (choice &&& work . ngramDist) . collectNodes
   where
     collectNodes = filter isWordStart . concatMap nodes . Map.elems
     isWordStart = (== ' ') . head . ngram
@@ -44,9 +47,9 @@ passphrase :: RandomGen g =>
   Double -> MarkovChain Char -> Rand g (String, Double)
 passphrase eMin c = (first . (++) <$> s0) <*> (takeWords <$> iterateNodes n0)
   where
-    (n0, e0) = firstNodeWithEntropy c
+    (n0, e0) = firstNodeWithWork c
     s0 = tail . ngram <$> n0
-    takeWords = mergeTuples . takeUntilAtLeast (eMin - e0) . wordsWithEntropy
+    takeWords = mergeTuples . takeUntilAtLeast (eMin - e0) . wordsWithWork
     mergeTuples = (unwords *** (e0 +) . sum) . unzip
 
 cleanForPassphrase :: String -> String
