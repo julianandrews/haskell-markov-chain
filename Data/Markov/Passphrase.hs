@@ -11,10 +11,7 @@ import Data.Markov
 import Utils
 
 work :: [Double] -> Double
--- work = negate . sum . map (\p -> p * logBase 2 p)
-work = (/ logBase 2 1.5) . logBase 2 . averageGuesses
-  where
-    averageGuesses = sum . zipWith (*) [1..] . sortBy (flip compare)
+work = negate . sum . map (\p -> p * logBase 2 p)
 
 ngramDist :: (Eq a, Ord a) => [MarkovNode a] -> [Double]
 ngramDist ns = map (/ sum counts) counts

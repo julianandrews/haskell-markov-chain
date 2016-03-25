@@ -5,11 +5,15 @@ import Data.Markov.Passphrase (cleanForPassphrase, passphrase)
 -- import Data.Markov.Sentence (sentence)
 
 corpus = [
+    "corpus/bible.txt",
+    "corpus/shakespeare.txt",
     "corpus/mountains_of_madness.txt",
-    "corpus/alchemist.txt",
     "corpus/dunwich.txt",
     "corpus/emma.txt",
-    "corpus/pride.txt"
+    "corpus/pride.txt",
+    "corpus/my_man_jeeves.txt",
+    "corpus/right_ho_jeeves.txt",
+    "corpus/holmes.txt"
   ]
 
 concatFiles :: [FilePath] -> IO String
@@ -28,5 +32,5 @@ printPassphrase filenames minEntropy = do
 --   print result
 
 main :: IO ()
-main = printPassphrase corpus 60
+main = printPassphrase corpus 64
 -- main = printSentence corpus
