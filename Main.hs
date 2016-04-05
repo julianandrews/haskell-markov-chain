@@ -40,35 +40,37 @@ flags = [
     "Print this help message"
   ]
 
-parse :: [String] -> IO (Double, Int, Bool, [String])
-parse argv = case getOpt Permute flags argv of
+parseArgs :: [String] -> IO (Double, Int, Bool, [String])
+parseArgs argv = case getOpt Permute flags argv of
   (args, files, []) ->
       if Help `elem` args then hPutStrLn stderr usage >> exitSuccess
       else do
-        let minEntropy = headOrDefault 60 [e | x@(MinEntropy e) <- args]
-        let number = headOrDefault 1 [n | x@(Number n) <- args]
-        let suppress = Suppress `elem` args
-        return (minEntropy, number, suppress, files)
+        minEntropy <- getValue 60 [e | x@(MinEntropy e) <- args]
+        number <- getValue 1 [n | x@(Number n) <- args]
+        let suppresEntropy = Suppress `elem` args
+        return (minEntropy, number, suppresEntropy, files)
   (_, _, errs) -> hPutStrLn stderr (concat errs ++ usage) >> exitFailure
-  where usage = usageInfo "Usage: passphrase [OPTION]... [FILE]..." flags
-
-headOrDefault :: a -> [a] -> a
-headOrDefault d [] = d
-headOrDefault _ (x:xs) = x
+  where
+    usage = usageInfo "Usage: passphrase [OPTION]... [FILE]..." flags
+    getValue d [] = return d
+    getValue _ [x] = return x
+    getValue _ _ = do
+      hPutStrLn stderr $ "Only one argument of each type allowed\n" ++ usage
+      exitFailure
 
 genPassphrase :: Double -> String -> IO (String, Double)
 genPassphrase minEntropy = evalRandIO . passphrase minEntropy . markovChain 3
 
-getCorpus :: [String] -> IO String
+getCorpus :: [FilePath] -> IO String
 getCorpus [] = getContents
 getCorpus filenames = concat <$> mapM readFile filenames
 
 main :: IO ()
 main = do
-  (minEntropy, number, suppress, files) <- getArgs >>= parse
-  string <- cleanForPassphrase <$> getCorpus files
-  passphrases <- replicateM number $ genPassphrase minEntropy string
-  mapM_ (printPassphrase suppress) passphrases
+  (minEntropy, number, suppressEntropy, files) <- getArgs >>= parseArgs
+  corpus <- cleanForPassphrase <$> getCorpus files
+  passphrases <- replicateM number $ genPassphrase minEntropy corpus
+  mapM_ (printPassphrase suppressEntropy) passphrases
   where
     printPassphrase True = printf "%s\n" . fst
     printPassphrase False = uncurry (printf "%s <%.2f>\n")
