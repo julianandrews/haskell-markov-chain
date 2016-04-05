@@ -58,8 +58,8 @@ parseArgs argv = case getOpt Permute flags argv of
       hPutStrLn stderr $ "Only one argument of each type allowed\n" ++ usage
       exitFailure
 
-genPassphrase :: Double -> String -> IO (String, Double)
-genPassphrase minEntropy = evalRandIO . passphrase minEntropy . markovChain 3
+genPassphrase :: Double -> MarkovChain Char -> IO (String, Double)
+genPassphrase minEntropy = evalRandIO . passphrase minEntropy
 
 getCorpus :: [FilePath] -> IO String
 getCorpus [] = getContents
@@ -69,7 +69,7 @@ main :: IO ()
 main = do
   (minEntropy, number, suppressEntropy, files) <- getArgs >>= parseArgs
   corpus <- cleanForPassphrase <$> getCorpus files
-  passphrases <- replicateM number $ genPassphrase minEntropy corpus
+  passphrases <- replicateM number . genPassphrase minEntropy . markovChain 3 $ corpus
   mapM_ (printPassphrase suppressEntropy) passphrases
   where
     printPassphrase True = printf "%s\n" . fst
