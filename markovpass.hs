@@ -69,7 +69,8 @@ main :: IO ()
 main = do
   (minEntropy, number, suppressEntropy, files) <- getArgs >>= parseArgs
   corpus <- cleanForPassphrase <$> getCorpus files
-  passphrases <- replicateM number . genPassphrase minEntropy . markovChain 3 $ corpus
+  let chain = markovChain 3 corpus
+  passphrases <- replicateM number . genPassphrase minEntropy $! chain
   mapM_ (printPassphrase suppressEntropy) passphrases
   where
     printPassphrase True = printf "%s\n" . fst
