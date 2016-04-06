@@ -2,3 +2,4 @@ corpus/
 .cabal-sandbox/
 *.hi
 *.o
+markovpass
