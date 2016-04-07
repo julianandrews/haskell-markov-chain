@@ -1,4 +1,4 @@
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, when)
 import Control.Monad.Random (evalRandIO)
 import Data.List (nub)
 import Text.Printf (printf)
@@ -76,20 +76,28 @@ parseArgs argv = case getOpt Permute flags argv of
 genPassphrase :: Double -> MarkovChain Char -> IO (String, Double)
 genPassphrase e = evalRandIO . passphrase e
 
-getCorpus :: [FilePath] -> IO String
-getCorpus [] = getContents
-getCorpus filenames = concat <$> mapM readFile filenames
+getCorpus :: Int -> [FilePath] -> IO String
+getCorpus w fs = do
+  c <- cleanForPassphrase w <$> getInput fs
+  if c == " " then do
+    hPutStrLn stderr (
+      "Empty corpus. Maybe try a shorter minimum word length?\n" ++ usage
+      )
+    exitFailure
+  else
+    return c
+  where
+    getInput [] = getContents
+    getInput filenames = concat <$> mapM readFile filenames
 
 main :: IO ()
 main = do
   (e, n, l, w, s, fs) <- getArgs >>= parseArgs
-  corpus <- cleanForPassphrase w <$> getCorpus fs
-  let chain = markovChain l corpus
-  passphrases <- replicateM n . genPassphrase e $! chain
+  c <- getCorpus w fs
+  passphrases <- replicateM n . genPassphrase e $! markovChain l c
   mapM_ (printPassphrase s) passphrases
   where
     printPassphrase True = printf "%s\n" . fst
     printPassphrase False = uncurry (printf "%s <%.2f>\n")
 
 
--- if corpus == "" then hPutStrLn stderr $ "Empty corpus. Maybe try a shorter minimum word length?\n" ++ usage
