@@ -49,9 +49,10 @@ passphrase eMin c = (first . (++) <$> s0) <*> (takeWords <$> iterateNodes n0)
     takeWords = mergeTuples . takeUntilAtLeast (eMin - e0) . wordsWithWork
     mergeTuples = (unwords *** (e0 +) . sum) . unzip
 
-cleanForPassphrase :: String -> String
-cleanForPassphrase = unwords . filter isGood . map clean . words
+cleanForPassphrase :: Int -> String -> String
+cleanForPassphrase minWordLength = (' ' :) . unwords . cleanWords . words
   where
-    isGood word = length word > 4 && all isAlpha word
+    cleanWords = filter isGood . map clean
+    isGood word = length word >= minWordLength && all isAlpha word
     clean = map toLower . reverse . lstrip . reverse . lstrip
     lstrip = takeWhile isAlpha

@@ -13,6 +13,8 @@ import Data.Markov.Passphrase (cleanForPassphrase, passphrase)
 data Flag
   = MinEntropy Double
   | Number Int
+  | NGramLength Int
+  | MinWordLength Int
   | Suppress
   | Help
   deriving (Eq, Show)
@@ -20,19 +22,29 @@ data Flag
 flags = [
   Option
     ['m']
-    ["min-entropy"]
+    ["minentropy"]
     (ReqArg (MinEntropy . read) "MINENTROPY")
-    "Minumum Entropy (defaults to 60)",
+    "Minumum Entropy (default 60)",
   Option
     ['n']
     ["number"]
     (ReqArg (Number . read) "NUMBER")
-    "Number of passphrases to generate",
+    "Number of passphrases to generate (default 1)",
+  Option
+    ['l']
+    ["length"]
+    (ReqArg (NGramLength .read) "LENGTH")
+    "NGram Length (default 3)",
+  Option
+    ['w']
+    ["minwordlength"]
+    (ReqArg (MinWordLength . read) "LENGTH")
+    "Minimum word length for corpus (default 5)",
   Option
     ['s']
     ["suppress"]
     (NoArg Suppress)
-    "Suppress entropy output",
+    "Suppress work output",
   Option
     ['h']
     ["help"]
@@ -40,26 +52,29 @@ flags = [
     "Print this help message"
   ]
 
-parseArgs :: [String] -> IO (Double, Int, Bool, [String])
+usage = usageInfo "Usage: passphrase [OPTION]... [FILE]..." flags
+
+parseArgs :: [String] -> IO (Double, Int, Int, Int, Bool, [String])
 parseArgs argv = case getOpt Permute flags argv of
-  (args, files, []) ->
+  (args, fs, []) ->
       if Help `elem` args then hPutStrLn stderr usage >> exitSuccess
       else do
-        minEntropy <- getValue 60 [e | x@(MinEntropy e) <- args]
-        number <- getValue 1 [n | x@(Number n) <- args]
-        let suppresEntropy = Suppress `elem` args
-        return (minEntropy, number, suppresEntropy, files)
+        e <- getValue 60 [x | MinEntropy x <- args]
+        n <- getValue 1 [x | Number x <- args]
+        l <- getValue 3 [x | NGramLength x <- args]
+        w <- getValue 4 [x | MinWordLength x <- args]
+        let s = Suppress `elem` args
+        return (e, n, l, w, s, fs)
   (_, _, errs) -> hPutStrLn stderr (concat errs ++ usage) >> exitFailure
   where
-    usage = usageInfo "Usage: passphrase [OPTION]... [FILE]..." flags
     getValue d [] = return d
     getValue _ [x] = return x
     getValue _ _ = do
-      hPutStrLn stderr $ "Only one argument of each type allowed\n" ++ usage
+      hPutStrLn stderr $ "Only one argument allowed per flag\n" ++ usage
       exitFailure
 
 genPassphrase :: Double -> MarkovChain Char -> IO (String, Double)
-genPassphrase minEntropy = evalRandIO . passphrase minEntropy
+genPassphrase e = evalRandIO . passphrase e
 
 getCorpus :: [FilePath] -> IO String
 getCorpus [] = getContents
@@ -67,11 +82,14 @@ getCorpus filenames = concat <$> mapM readFile filenames
 
 main :: IO ()
 main = do
-  (minEntropy, number, suppressEntropy, files) <- getArgs >>= parseArgs
-  corpus <- cleanForPassphrase <$> getCorpus files
-  let chain = markovChain 3 corpus
-  passphrases <- replicateM number . genPassphrase minEntropy $! chain
-  mapM_ (printPassphrase suppressEntropy) passphrases
+  (e, n, l, w, s, fs) <- getArgs >>= parseArgs
+  corpus <- cleanForPassphrase w <$> getCorpus fs
+  let chain = markovChain l corpus
+  passphrases <- replicateM n . genPassphrase e $! chain
+  mapM_ (printPassphrase s) passphrases
   where
     printPassphrase True = printf "%s\n" . fst
     printPassphrase False = uncurry (printf "%s <%.2f>\n")
+
+
+-- if corpus == "" then hPutStrLn stderr $ "Empty corpus. Maybe try a shorter minimum word length?\n" ++ usage
