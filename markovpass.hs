@@ -99,5 +99,3 @@ main = do
   where
     printPassphrase True = printf "%s\n" . fst
     printPassphrase False = uncurry (printf "%s <%.2f>\n")
-
-

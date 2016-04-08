@@ -1,5 +1,5 @@
 module Data.Markov (
-  MarkovChain, MarkovNode(..), markovChain, iterateNodes, iterateTokens
+  MarkovChain, MarkovNode(..), markovChain, iterateNodes
 ) where
 
 import Control.Monad.Random (Rand, RandomGen)
@@ -34,6 +34,3 @@ iterateM step start = do
 
 iterateNodes :: RandomGen g => Rand g (MarkovNode a) -> Rand g [MarkovNode a]
 iterateNodes = iterateM $ choice . nodes
-
-iterateTokens :: RandomGen g => Rand g (MarkovNode a) -> Rand g [a]
-iterateTokens = (map (head . ngram) <$>) . iterateNodes
