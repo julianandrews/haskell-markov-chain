@@ -25,7 +25,7 @@ wordsWithWork :: [MarkovNode Char] -> [(String, Double)]
 wordsWithWork = getWords . map (token &&& nodeWork)
   where
     token = last . ngram
-    getWords = map ((tail *** sum) . unzip) . splitWords
+    getWords = map ((tail *** sum) . unzip) . filter (/= []) . splitWords
     splitWords = split . keepDelimsL . whenElt $ (== ' ') . fst
 
 takeUntilAtLeast :: Double -> [(a, Double)] -> [(a, Double)]
