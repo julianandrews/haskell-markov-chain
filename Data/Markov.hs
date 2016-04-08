@@ -17,7 +17,6 @@ ngramMap n = foldl addTransition Map.empty . toPairs . toNGrams n
   where
     addTransition m (from, to) = Map.insertWith (++) from [to] m
     toNGrams n xs = take (length xs - n + 1) . map (take n) . tails $ xs
-    -- `cycle` guarantees that every node has at least one transition.
     toPairs l = zip l . tail . cycle $ l
 
 markovChain :: (Eq a, Ord a) => Int -> [a] -> MarkovChain a

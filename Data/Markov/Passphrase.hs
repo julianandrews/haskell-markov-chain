@@ -1,9 +1,9 @@
-module Data.Markov.Passphrase (passphrase, cleanForPassphrase) where
+module Data.Markov.Passphrase (passphrase, cleanCorpus) where
 
 import Control.Arrow (first, (&&&), (***))
 import Control.Monad.Random (Rand, RandomGen)
 import Data.Char (toLower, isAlpha)
-import Data.List (group, sort, sortBy)
+import Data.List (group, sort)
 import Data.List.Split (split, whenElt, keepDelimsL)
 import qualified Data.Map as Map
 
@@ -49,8 +49,8 @@ passphrase eMin c = (first . (++) <$> s0) <*> (takeWords <$> iterateNodes n0)
     takeWords = mergeTuples . takeUntilAtLeast (eMin - e0) . wordsWithWork
     mergeTuples = (unwords *** (e0 +) . sum) . unzip
 
-cleanForPassphrase :: Int -> String -> String
-cleanForPassphrase minWordLength = (' ' :) . unwords . cleanWords . words
+cleanCorpus :: Int -> String -> String
+cleanCorpus minWordLength = (' ' :) . unwords . cleanWords . words
   where
     cleanWords = filter isGood . map clean
     isGood word = length word >= minWordLength && all isAlpha word
