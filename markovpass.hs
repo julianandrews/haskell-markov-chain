@@ -78,9 +78,9 @@ getCorpus w fs = do
 main :: IO ()
 main = do
   (e, n, l, w, s, fs) <- getArgs >>= parseArgs
-  c <- getCorpus w fs
-  passphrases <- replicateM n . evalRandIO . passphrase e $! markovChain l c
-  mapM_ (printPassphrase s) passphrases
+  c <- markovChain l <$> getCorpus w fs
+  ps <- replicateM n . evalRandIO . passphrase e $! c
+  mapM_ (printPassphrase s) ps
   where
     printPassphrase True = printf "%s\n" . fst
     printPassphrase False = uncurry (printf "%s <%.2f>\n")
