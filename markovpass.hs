@@ -32,17 +32,17 @@ flags = [
     "NGram Length (default 3)",
   Option
     ['w'] ["minwordlength"] (ReqArg (MinWordLength . read) "LENGTH")
-    "Minimum word length for corpus (default 5)",
+    "Minimum word length for corpus (default 1)",
   Option
     ['s'] ["suppress"] (NoArg Suppress)
-    "Suppress work output",
+    "Suppress entropy output",
   Option
     ['h'] ["help"] (NoArg Help)
     "Print this help message"
   ]
 
 usage :: String
-usage = usageInfo "Usage: passphrase [OPTION]... [FILE]..." flags
+usage = usageInfo "Usage: markovpass [OPTION]... [FILE]..." flags
 
 printError :: String -> IO a
 printError message = hPutStrLn stderr (message ++ '\n': usage) >> exitFailure
@@ -55,7 +55,7 @@ parseArgs argv = case getOpt Permute flags argv of
         e <- getValue 60 [x | MinEntropy x <- args]
         n <- getValue 1 [x | Number x <- args]
         l <- getValue 3 [x | NGramLength x <- args]
-        w <- getValue 5 [x | MinWordLength x <- args]
+        w <- getValue 1 [x | MinWordLength x <- args]
         let s = Suppress `elem` args
         return (e, n, l, w, s, fs)
   (_, _, errs) -> printError (concat errs ++ usage)
