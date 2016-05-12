@@ -1,0 +1,13 @@
+Name:          markovpass
+Version:       0.1.0.0
+Build-type:    Simple
+Cabal-version: >=1.10
+
+Library
+  Exposed-modules:  Data.Markov
+                  , Data.Markov.Passphrase
+  Default-language: Haskell2010
+  Build-depends:    base >= 4.7 && < 5
+                  , MonadRandom
+                  , split
+                  , containers
