@@ -3,3 +3,4 @@ corpus/
 *.hi
 *.o
 markovpass
+.stack-work
