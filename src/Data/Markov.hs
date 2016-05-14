@@ -6,7 +6,7 @@ import Control.Monad.Random (Rand, RandomGen)
 import Data.List (tails)
 import qualified Data.Map as Map
 
-import Utils (choice)
+import Lib (choice)
 
 type NGram a = [a]
 data MarkovNode a = MarkovNode {ngram :: NGram a, nodes :: [MarkovNode a]}

@@ -8,7 +8,7 @@ import Data.List.Split (split, whenElt, keepDelimsL)
 import qualified Data.Map as Map
 
 import Data.Markov
-import Utils
+import Lib
 
 work :: [Double] -> Double
 work = negate . sum . map (\p -> p * logBase 2 p)

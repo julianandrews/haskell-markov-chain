@@ -1,13 +1,36 @@
-Name:          markovpass
-Version:       0.1.0.0
-Build-type:    Simple
-Cabal-version: >=1.10
+name:                markovpass
+version:             0.1.0.0
+build-type:          Simple
+synopsis:            Markov chain based passphrase generator with entropy estimation.
+description:         Please see README.md
+homepage:            https://github.com/julianandrews/markovpass#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Julian Andrews
+maintainer:          jandrews271@gmail.com
+copyright:           Copyright Julian Andrews
+category:            Password
+cabal-version:       >=1.10
 
-Library
-  Exposed-modules:  Data.Markov
-                  , Data.Markov.Passphrase
-  Default-language: Haskell2010
-  Build-depends:    base >= 4.7 && < 5
-                  , MonadRandom
-                  , split
-                  , containers
+library
+  Hs-source-dirs:    src
+  Exposed-modules:   Data.Markov
+                   , Data.Markov.Passphrase
+                   , Lib
+  Default-language:  Haskell2010
+  Build-depends:     base >= 4.7 && < 5
+                   , MonadRandom
+                   , split
+                   , containers
+
+executable markovpass
+  hs-source-dirs:    app
+  main-is:           Main.hs
+  build-depends:     base
+                   , markovpass
+                   , MonadRandom
+  default-language:  Haskell2010
+
+source-repository head
+  type:              git
+  location:          https://github.com/julianandrews/markovpass

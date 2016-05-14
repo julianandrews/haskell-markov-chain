@@ -1,6 +1,3 @@
-corpus/
-.cabal-sandbox/
 *.hi
 *.o
-markovpass
 .stack-work

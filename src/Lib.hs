@@ -1,4 +1,4 @@
-module Utils (choice) where
+module Lib (choice) where
 
 import Control.Monad.Random (RandomGen, Rand, getRandomR)
 
